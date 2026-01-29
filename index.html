@@ -1,0 +1,2620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ROS2 Advanced Auditor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <style>
+        .folder-content { margin-left: 1.5rem; border-left: 1px solid #334155; }
+        .hidden { display: none; }
+        .graph-container { 
+            width: 100%; 
+            height: 400px; 
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 16px;
+            overflow: auto;
+        }
+        .package-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .package-card:hover {
+            border-color: rgba(124, 58, 237, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.1);
+        }
+        .package-card.active {
+            border-color: rgba(124, 58, 237, 0.8);
+            background: rgba(124, 58, 237, 0.1);
+        }
+        .launch-file-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .launch-file-card:hover {
+            border-color: rgba(245, 158, 11, 0.5);
+        }
+        .launch-details {
+            background: rgba(15, 23, 42, 0.9);
+            border-top: 1px solid rgba(100, 116, 139, 0.2);
+        }
+        .node-highlight { 
+            animation: pulse 2s infinite; 
+            background-color: rgba(124, 58, 237, 0.2) !important;
+        }
+        @keyframes pulse {
+            0%, 100% { background-color: rgba(124, 58, 237, 0.1); }
+            50% { background-color: rgba(124, 58, 237, 0.3); }
+        }
+        .tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .tag-python { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .tag-xml { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+        .tag-yaml { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 3px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: rgba(124, 58, 237, 0.5);
+            border-radius: 3px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: rgba(124, 58, 237, 0.8);
+        }
+        .mermaid-error {
+            color: #ef4444;
+            padding: 20px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .package-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .package-tab {
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+        .package-tab:hover {
+            border-color: rgba(124, 58, 237, 0.5);
+            background: rgba(124, 58, 237, 0.1);
+        }
+        .package-tab.active {
+            background: rgba(124, 58, 237, 0.2);
+            border-color: rgba(124, 58, 237, 0.8);
+        }
+        .graph-view-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .graph-view-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #c7d2fe;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 11px;
+        }
+        .graph-view-btn:hover {
+            border-color: rgba(99, 102, 241, 0.6);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        .graph-view-btn.active {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: rgba(99, 102, 241, 0.8);
+            color: white;
+        }
+        .graph-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #60a5fa;
+        }
+        .stat-label {
+            font-size: 10px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .visualization-section {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .visualization-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #818cf8;
+            margin-bottom: 5px;
+        }
+        .visualization-desc {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+        
+        /* Styles for package detail section */
+        .package-tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .package-tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .node-details-card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        .node-details-card:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.1);
+        }
+        .connection-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+        .connection-badge-topic {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .connection-badge-service {
+            background: rgba(139, 92, 246, 0.2);
+            color: #8b5cf6;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        .connection-badge-action {
+            background: rgba(236, 72, 153, 0.2);
+            color: #ec4899;
+            border: 1px solid rgba(236, 72, 153, 0.3);
+        }
+        .launch-file-item {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .launch-file-item:hover {
+            border-color: rgba(245, 158, 11, 0.4);
+            background: rgba(30, 41, 59, 0.9);
+        }
+        .connection-item {
+            padding: 8px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 6px;
+            margin-bottom: 4px;
+            border-left: 3px solid transparent;
+        }
+        .connection-item.topic {
+            border-left-color: #10b981;
+        }
+        .connection-item.service {
+            border-left-color: #8b5cf6;
+        }
+        .connection-item.action {
+            border-left-color: #ec4899;
+        }
+        
+        /* System Architecture Styles */
+        .architecture-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .layer-tag {
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .layer-perception { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .layer-planning { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .layer-control { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .layer-execution { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+        .layer-supervision { background: rgba(236, 72, 153, 0.2); color: #ec4899; }
+        
+        /* Decision Making Indicators */
+        .decision-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+        }
+        .decision-high { background: #10b981; }
+        .decision-medium { background: #f59e0b; }
+        .decision-low { background: #ef4444; }
+        
+        /* Communication Chain */
+        .chain-link {
+            display: flex;
+            align-items: center;
+            padding: 6px 10px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            margin-bottom: 4px;
+        }
+        .chain-index {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.3);
+            color: #c7d2fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .chain-topic {
+            font-size: 10px;
+            font-family: monospace;
+            color: #c7d2fe;
+            margin: 0 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 p-6 font-sans">
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center border-b border-slate-800 pb-6 mb-8">
+            <div>
+                <h1 class="text-3xl font-black italic tracking-tighter text-white">ROS2<span class="text-indigo-500">EXPERT</span></h1>
+                <p class="text-sm text-slate-500 mt-1">Professional ROS2 Workspace Analysis & System Architecture Audit</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="loading" class="hidden items-center gap-2">
+                    <div class="animate-spin rounded-full h-5 w-5 border-2 border-indigo-500 border-t-transparent"></div>
+                    <span class="text-sm text-slate-400">Analyzing...</span>
+                </div>
+                <button onclick="document.getElementById('zip').click()" 
+                        class="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-3 rounded-full font-bold hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-900/20 hover:shadow-xl hover:shadow-indigo-900/30 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                    </svg>
+                    ANALYZE WORKSPACE
+                </button>
+                <input type="file" id="zip" class="hidden" onchange="process()" accept=".zip">
+            </div>
+        </header>
+
+        <!-- Statistics Section -->
+        <div id="statsSection" class="hidden mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-emerald-400 font-bold uppercase text-xs">📊 System Statistics</h3>
+                <span class="text-xs text-slate-500">Real-time metrics</span>
+            </div>
+            <div class="graph-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="statNodes">0</div>
+                    <div class="stat-label">Nodes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statTopics">0</div>
+                    <div class="stat-label">Topics</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statServices">0</div>
+                    <div class="stat-label">Services</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statActions">0</div>
+                    <div class="stat-label">Actions</div>
+                </div>
+                
+            </div>
+        </div>
+
+        <!-- Main Analysis Sections - Improved layout for equal heights -->
+        <div class="main-analysis-grid mb-8">
+            <!-- File Tree Section (Left sidebar) -->
+            <div>
+                <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 sidebar-card">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">🌳 Project Structure</h3>
+                    <div id="fileTree" class="text-sm font-mono tree-container scrollbar-custom"></div>
+                </div>
+            </div>
+
+            <!-- Right column: Packages + Validation (stacked vertically) -->
+            <div class="flex flex-col gap-6">
+                <!-- ROS2 Packages Section -->
+                <div id="packagesDetectedSection" class="hidden">
+                    <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 class="text-emerald-400 font-bold uppercase text-xs">ROS2 Packages Detected</h3>
+                                <p class="text-slate-500 text-sm mt-1">Packages identified via package.xml</p>
+                            </div>
+                            <span id="rosPackagesCount" class="text-xs bg-emerald-900/30 text-emerald-400 px-3 py-1 rounded-full font-semibold">
+                                0 packages
+                            </span>
+                        </div>
+                        
+                        <div id="rosPackagesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            <!-- Packages will appear here dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Validation Section -->
+                <div id="validationSection" class="hidden">
+                    <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 class="text-red-400 font-bold uppercase text-xs">🔍 Syntax Validation & Best Practices</h3>
+                                <p class="text-slate-500 text-sm mt-1">Code analysis and ROS2 compliance verification</p>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span id="validationStatus" class="text-xs px-3 py-1 rounded-full font-semibold">
+                                    <!-- Dynamically filled -->
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Validation Summary -->
+                        <div class="grid grid-cols-4 gap-4 mb-6">
+                            <div class="bg-slate-800/50 p-4 rounded-xl text-center">
+                                <div class="text-2xl font-bold" id="validationTotal">0</div>
+                                <div class="text-xs text-slate-400">Total Issues</div>
+                            </div>
+                            <div class="bg-red-900/20 p-4 rounded-xl text-center">
+                                <div class="text-2xl font-bold text-red-400" id="validationErrors">0</div>
+                                <div class="text-xs text-slate-400">Errors</div>
+                            </div>
+                            <div class="bg-amber-900/20 p-4 rounded-xl text-center">
+                                <div class="text-2xl font-bold text-amber-400" id="validationWarnings">0</div>
+                                <div class="text-xs text-slate-400">Warnings</div>
+                            </div>
+                            <div class="bg-blue-900/20 p-4 rounded-xl text-center">
+                                <div class="text-2xl font-bold text-blue-400" id="validationInfos">0</div>
+                                <div class="text-xs text-slate-400">Info</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Issues List -->
+                        <div class="space-y-3 max-h-96 overflow-auto pr-2 scrollbar-custom" id="validationIssues">
+                            <!-- Issues will appear here dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Package Detail Section (full width when open) -->
+        <div id="packageDetailSection" class="hidden mb-8">
+            
+                <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800">
+                    <!-- Header with navigation -->
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="flex items-center gap-4">
+                            <button onclick="closePackageDetail()" class="text-slate-400 hover:text-white">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                                </svg>
+                            </button>
+                            <div>
+                                <h3 class="text-emerald-400 font-bold uppercase text-xs">ROS2 Package</h3>
+                                <h2 id="packageDetailTitle" class="text-xl font-bold text-white">Package Name</h2>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span id="packageDetailType" class="text-xs px-3 py-1 rounded-full font-semibold">
+                                <!-- Package type -->
+                            </span>
+                            <button onclick="exportPackageInfo()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                Export
+                            </button>
+                        </div>
+                    </div>
+    
+                    <!-- Navigation tabs -->
+                    <div class="flex border-b border-slate-800 mb-6">
+                        <button id="packageTabOverview" class="package-tab active" onclick="switchPackageDetailTab('overview')">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Overview
+                        </button>
+                        <button id="packageTabNodes" class="package-tab" onclick="switchPackageDetailTab('nodes')">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                            Nodes (<span id="nodeCountBadge">0</span>)
+                        </button>
+                        <button id="packageTabGraph" class="package-tab" onclick="switchPackageDetailTab('graph')">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Package Graph
+                        </button>
+                        <button id="packageTabLaunch" class="package-tab" onclick="switchPackageDetailTab('launch')">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Launch Files (<span id="launchCountBadge">0</span>)
+                        </button>
+                        <button id="packageTabConnections" class="package-tab" onclick="switchPackageDetailTab('connections')">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                            </svg>
+                            Connections
+                        </button>
+                    </div>
+    
+                    <!-- Tab content -->
+                    <div id="packageTabContent">
+                        <!-- Overview Tab -->
+                        <div id="packageTabContentOverview" class="package-tab-content active">
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <!-- Package statistics -->
+                                <div class="lg:col-span-2">
+                                    <h4 class="text-sm font-bold text-slate-300 mb-4">📊 Package Statistics</h4>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div class="stat-card">
+                                            <div class="stat-value" id="packageStatNodes">0</div>
+                                            <div class="stat-label">Nodes</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div class="stat-value" id="packageStatPubs">0</div>
+                                            <div class="stat-label">Publishers</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div class="stat-value" id="packageStatSubs">0</div>
+                                            <div class="stat-label">Subscribers</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div class="stat-value" id="packageStatLaunch">0</div>
+                                            <div class="stat-label">Launch Files</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Information card -->
+                                    <div class="mt-6">
+                                        <h4 class="text-sm font-bold text-slate-300 mb-4">ℹ️ Package Information</h4>
+                                        <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <div class="text-xs text-slate-500 mb-1">Path</div>
+                                                    <div class="text-sm text-white font-mono truncate" id="packagePath"></div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-xs text-slate-500 mb-1">Build type</div>
+                                                    <div class="text-sm text-white" id="packageBuildType"></div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-xs text-slate-500 mb-1">Source files</div>
+                                                    <div class="text-sm text-white" id="packageFileCount"></div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-xs text-slate-500 mb-1">Services/Actions</div>
+                                                    <div class="text-sm text-white" id="packageServicesActions"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Quick Actions -->
+                                <div>
+                                    <h4 class="text-sm font-bold text-slate-300 mb-4">🚀 Quick Actions</h4>
+                                    <div class="space-y-3">
+                                        <button onclick="switchPackageDetailTab('graph')" 
+                                                class="w-full bg-indigo-900/30 hover:bg-indigo-800/30 text-indigo-400 p-3 rounded-lg border border-indigo-700/30 flex items-center gap-3">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                            </svg>
+                                            <span class="text-sm">View communication graph</span>
+                                        </button>
+                                        <button onclick="switchPackageDetailTab('nodes')" 
+                                                class="w-full bg-emerald-900/30 hover:bg-emerald-800/30 text-emerald-400 p-3 rounded-lg border border-emerald-700/30 flex items-center gap-3">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                            </svg>
+                                            <span class="text-sm">Explore nodes</span>
+                                        </button>
+                                        <button onclick="switchPackageDetailTab('launch')" 
+                                                class="w-full bg-amber-900/30 hover:bg-amber-800/30 text-amber-400 p-3 rounded-lg border border-amber-700/30 flex items-center gap-3">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            <span class="text-sm">View launch files</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- Nodes Tab -->
+                        <div id="packageTabContentNodes" class="package-tab-content hidden">
+                            <div class="mb-4 flex justify-between items-center">
+                                <h4 class="text-sm font-bold text-slate-300">Nodes in this package</h4>
+                                <div class="flex gap-2">
+                                    <button onclick="filterNodes('all')" class="text-xs px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">
+                                        All
+                                    </button>
+                                    <button onclick="filterNodes('python')" class="text-xs px-3 py-1 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-800/30">
+                                        Python
+                                    </button>
+                                    <button onclick="filterNodes('cpp')" class="text-xs px-3 py-1 rounded bg-purple-900/30 text-purple-400 hover:bg-purple-800/30">
+                                        C++
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="packageNodesList" class="space-y-4 max-h-[500px] overflow-auto pr-2 scrollbar-custom">
+                                <!-- Nodes will appear here -->
+                            </div>
+                        </div>
+    
+                        <!-- Graph Tab -->
+                        <div id="packageTabContentGraph" class="package-tab-content hidden">
+                            <div class="mb-4 flex justify-between items-center">
+                                <h4 class="text-sm font-bold text-slate-300">Internal communication graph</h4>
+                                <div class="flex gap-2">
+                                    <button onclick="renderPackageGraphView('simple')" class="text-xs px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">
+                                        Simple view
+                                    </button>
+                                    <button onclick="renderPackageGraphView('detailed')" class="text-xs px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">
+                                        Detailed view
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="packageGraphContainer" class="graph-container min-h-[400px]">
+                                <div class="p-4 text-slate-400 text-center">
+                                    <p>Select a node to see its communication graph</p>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- Launch Files Tab -->
+                        <div id="packageTabContentLaunch" class="package-tab-content hidden">
+                            <div class="mb-4">
+                                <h4 class="text-sm font-bold text-slate-300 mb-2">Detected Launch Files</h4>
+                                <p class="text-xs text-slate-500">List of launch files that start nodes in this package</p>
+                            </div>
+                            
+                            <div id="packageLaunchFiles" class="space-y-4">
+                                <!-- Launch files will appear here -->
+                            </div>
+                        </div>
+    
+                        <!-- Connections Tab -->
+                        <div id="packageTabContentConnections" class="package-tab-content hidden">
+                            <div class="mb-4">
+                                <h4 class="text-sm font-bold text-slate-300 mb-2">Package Connections</h4>
+                                <p class="text-xs text-slate-500">Topics, Services and Actions used by this package</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <!-- Topics -->
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                    <h5 class="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                        </svg>
+                                        Topics (<span id="connectionTopicsCount">0</span>)
+                                    </h5>
+                                    <div id="connectionTopicsList" class="space-y-2 max-h-[300px] overflow-auto scrollbar-custom">
+                                        <!-- Topics list -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Services -->
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                    <h5 class="text-sm font-bold text-purple-400 mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                        </svg>
+                                        Services (<span id="connectionServicesCount">0</span>)
+                                    </h5>
+                                    <div id="connectionServicesList" class="space-y-2 max-h-[300px] overflow-auto scrollbar-custom">
+                                        <!-- Services list -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Actions -->
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                    <h5 class="text-sm font-bold text-rose-400 mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                        </svg>
+                                        Actions (<span id="connectionActionsCount">0</span>)
+                                    </h5>
+                                    <div id="connectionActionsList" class="space-y-2 max-h-[300px] overflow-auto scrollbar-custom">
+                                        <!-- Actions list -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Professional Behavioral Analysis Section -->
+        <div id="behavioralAnalysisSection" class="hidden mb-8">
+            <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h3 class="text-cyan-400 font-bold uppercase text-xs">🤖 Professional Behavioral Analysis</h3>
+                        <p class="text-slate-500 text-sm mt-1">Node characterization, decision-making patterns & system architecture</p>
+                    </div>
+                    <span class="text-xs bg-cyan-900/30 text-cyan-400 px-3 py-1 rounded-full font-semibold">
+                        Architecture Intelligence
+                    </span>
+                </div>
+                
+                <!-- Three Professional Analysis Cards -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- Real-Time Performance Analysis -->
+                    <div class="architecture-card p-5">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-lg bg-blue-900/30 flex items-center justify-center">
+                                <span class="text-lg">⚡</span>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-blue-400">Real-Time Performance</h4>
+                                <p class="text-xs text-slate-400">Hardware-critical timing analysis</p>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="text-xs text-slate-400 mb-2">Publication Frequencies</div>
+                            <div id="frequencyAnalysis" class="space-y-2">
+                                <!-- Frequency data will appear here -->
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-slate-500">
+                            <span class="text-blue-400">Detection:</span> Timer analysis, hardware interface patterns
+                        </div>
+                    </div>
+                    
+                    <!-- Decision-Making Intelligence -->
+                    <div class="architecture-card p-5">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-900/30 flex items-center justify-center">
+                                <span class="text-lg">🧠</span>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-emerald-400">Decision-Making Intelligence</h4>
+                                <p class="text-xs text-slate-400">Multi-sensor fusion & cognitive load</p>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="text-xs text-slate-400 mb-2">Decision Complexity</div>
+                            <div id="decisionComplexity" class="space-y-2">
+                                <!-- Decision complexity data -->
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-slate-500">
+                            <span class="text-emerald-400">Metrics:</span> Input diversity, synchronization patterns
+                        </div>
+                    </div>
+                    
+                    <!-- System Architecture Layer -->
+                    <div class="architecture-card p-5">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-lg bg-purple-900/30 flex items-center justify-center">
+                                <span class="text-lg">🏗️</span>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-purple-400">Architecture Layers</h4>
+                                <p class="text-xs text-slate-400">System hierarchy & responsibility distribution</p>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="text-xs text-slate-400 mb-2">Architectural Distribution</div>
+                            <div id="architectureLayers" class="space-y-2">
+                                <!-- Architecture layers -->
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-slate-500">
+                            <span class="text-purple-400">Classification:</span> Action servers, service patterns, data flow
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Longest Communication Chain -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-sm font-bold text-amber-400">🔗 Longest Communication Chain</h4>
+                        <span class="text-xs text-slate-500" id="chainLength">0 nodes in chain</span>
+                    </div>
+                    <div id="communicationChain" class="bg-slate-800/30 p-4 rounded-xl border border-slate-700">
+                        <!-- Communication chain visualization -->
+                        <div class="text-center text-sm text-slate-500 py-8">
+                            Load a workspace to see communication chains
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- System Architecture Diagram -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-sm font-bold text-rose-400">📐 System Architecture Overview</h4>
+                        <div class="flex gap-2">
+                            <button onclick="renderArchitectureView('layered')" class="text-xs px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">
+                                Layered View
+                            </button>
+                            <button onclick="renderArchitectureView('circular')" class="text-xs px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">
+                                Circular View
+                            </button>
+                        </div>
+                    </div>
+                    <div id="architectureDiagram" class="graph-container min-h-[400px]">
+                        <div class="p-4 text-slate-400 text-center">
+                            <p>System architecture will be visualized here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TF Visualization Section -->
+        <div id="tfVisualizationSection" class="hidden mb-8">
+            <div class="visualization-section">
+                <div class="visualization-title">📐 TF Tree (Transformations)</div>
+                <div class="visualization-desc">Hierarchical representation of TF frames detected in the workspace</div>
+                
+                <div class="graph-view-controls">
+                    <button class="graph-view-btn active" onclick="renderTFGraph('tf')">Complete TF View</button>
+                    <button class="graph-view-btn" onclick="renderTFGraph('custom')">Custom TF View</button>
+                    <button class="graph-view-btn" onclick="renderTFGraph('simplified')">Simplified View</button>
+                </div>
+                
+                <div id="tfVisualization" class="graph-container">
+                    <div class="p-4 text-slate-400 text-center">
+                        <p>Load a workspace to see the TF tree</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Package Detail Section -->
+        <div id="packageDetailSection" class="hidden mb-8">
+            
+        </div>
+    </div>
+
+    <script>
+        // Mermaid initialization
+        try {
+            mermaid.initialize({ 
+                startOnLoad: false,
+                theme: 'dark',
+                themeVariables: {
+                    primaryColor: '#1e293b',
+                    primaryTextColor: '#f1f5f9',
+                    primaryBorderColor: '#475569',
+                    lineColor: '#6366f1',
+                    fontFamily: 'monospace',
+                    fontSize: '12px'
+                },
+                flowchart: {
+                    useMaxWidth: false,
+                    htmlLabels: true,
+                    curve: 'basis'
+                },
+                securityLevel: 'loose'
+            });
+        } catch (e) {
+            console.error('Mermaid initialization error:', e);
+        }
+
+        let currentData = null;
+        let currentPackage = null;
+        let currentPackageTab = 'launches';
+        let currentTFView = 'tf';
+        let currentPackageDetail = null;
+        let currentPackageData = null;
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // ========== PROFESSIONAL ANALYSIS FUNCTIONS ==========
+
+        function performProfessionalAnalysis() {
+            if (!currentData?.nodes) return;
+            
+            const analysis = analyzeSystemProfessionally(currentData.nodes);
+            
+            // Update statistics
+            updateStats();
+            
+            // Display frequency analysis
+            displayFrequencyAnalysis(analysis.frequencyAnalysis);
+            
+            // Display decision complexity
+            displayDecisionComplexity(analysis.decisionComplexity);
+            
+            // Display architecture layers
+            displayArchitectureLayers(analysis.architectureLayers);
+            
+            // Display communication chain
+            displayCommunicationChain(analysis.longestChain);
+            
+            // Render architecture diagram
+            renderArchitectureView('layered');
+            
+            // Show the section
+            document.getElementById('behavioralAnalysisSection').classList.remove('hidden');
+        }
+
+        function analyzeSystemProfessionally(nodes) {
+            // Analyze publication frequencies
+            const frequencyAnalysis = nodes.map(node => {
+                const hz = node.hz || 0;
+                let frequencyCategory = 'Low';
+                let criticality = 'Non-critical';
+                
+                if (hz > 100) {
+                    frequencyCategory = 'Ultra-High';
+                    criticality = 'Hardware-critical';
+                } else if (hz > 50) {
+                    frequencyCategory = 'High';
+                    criticality = 'Real-time critical';
+                } else if (hz > 20) {
+                    frequencyCategory = 'Medium';
+                    criticality = 'Soft real-time';
+                } else if (hz > 0) {
+                    frequencyCategory = 'Low';
+                    criticality = 'Standard';
+                }
+                
+                return {
+                    nodeName: node.name,
+                    frequencyHz: hz,
+                    frequencyCategory,
+                    criticality,
+                    package: node.package || 'unknown'
+                };
+            }).filter(node => node.frequencyHz > 0)
+              .sort((a, b) => b.frequencyHz - a.frequencyHz);
+
+            // Analyze decision-making complexity
+            const decisionComplexity = nodes.map(node => {
+                const inputCount = node.subs?.length || 0;
+                const outputCount = node.pubs?.length || 0;
+                const serviceCount = node.srvs?.length || 0;
+                const actionCount = node.acts?.length || 0;
+                
+                // Calculate decision score
+                let decisionScore = 0;
+                let decisionLevel = 'Simple';
+                
+                if (actionCount > 0) decisionScore += 3;
+                if (serviceCount > 0) decisionScore += 2;
+                if (inputCount >= 3) decisionScore += 2;
+                else if (inputCount >= 2) decisionScore += 1;
+                
+                if (decisionScore >= 4) decisionLevel = 'Complex Decision-Making';
+                else if (decisionScore >= 2) decisionLevel = 'Moderate Decision-Making';
+                else decisionLevel = 'Basic Processing';
+                
+                return {
+                    nodeName: node.name,
+                    inputCount,
+                    outputCount,
+                    serviceCount,
+                    actionCount,
+                    decisionScore,
+                    decisionLevel,
+                    cognitiveLoad: inputCount + outputCount
+                };
+            }).sort((a, b) => b.decisionScore - a.decisionScore);
+
+            // Classify architecture layers
+            const architectureLayers = {
+                perception: nodes.filter(node => 
+                    (node.subs || []).some(topic => 
+                        topic.includes('sensor') || 
+                        topic.includes('camera') || 
+                        topic.includes('lidar') || 
+                        topic.includes('imu')
+                    )
+                ),
+                planning: nodes.filter(node => 
+                    node.acts && node.acts.length > 0 ||
+                    (node.subs || []).length >= 2 && (node.pubs || []).length >= 1
+                ),
+                control: nodes.filter(node => 
+                    (node.pubs || []).some(topic => 
+                        topic.includes('cmd_vel') || 
+                        topic.includes('command') || 
+                        topic.includes('control')
+                    )
+                ),
+                execution: nodes.filter(node => 
+                    (node.subs || []).some(topic => 
+                        topic.includes('command') || 
+                        topic.includes('action')
+                    ) && (node.hz || 0) > 20
+                ),
+                supervision: nodes.filter(node => 
+                    node.acts && node.acts.length > 0 ||
+                    node.srvs && node.srvs.length >= 2
+                )
+            };
+
+            // Find longest communication chain
+            const longestChain = findLongestCommunicationChain(nodes);
+            
+            return {
+                frequencyAnalysis,
+                decisionComplexity,
+                architectureLayers,
+                longestChain,
+                summary: {
+                    totalNodes: nodes.length,
+                    highFrequencyNodes: frequencyAnalysis.filter(f => f.frequencyCategory === 'High' || f.frequencyCategory === 'Ultra-High').length,
+                    decisionMakingNodes: decisionComplexity.filter(d => d.decisionLevel.includes('Decision-Making')).length,
+                    layeredDistribution: Object.keys(architectureLayers).map(key => ({
+                        layer: key,
+                        count: architectureLayers[key].length
+                    }))
+                }
+            };
+        }
+
+        function findLongestCommunicationChain(nodes) {
+            // Create adjacency list
+            const graph = new Map();
+            
+            // Build graph from nodes
+            nodes.forEach(node => {
+                const nodeName = node.name;
+                const connections = [];
+                
+                // Add subscriptions as incoming connections
+                (node.subs || []).forEach(topic => {
+                    // Find publishers of this topic
+                    nodes.forEach(otherNode => {
+                        if (otherNode !== node && 
+                            (otherNode.pubs || []).includes(topic)) {
+                            connections.push({
+                                from: otherNode.name,
+                                to: nodeName,
+                                type: 'topic',
+                                name: topic
+                            });
+                        }
+                    });
+                });
+                
+                // Add service connections
+                (node.srvs || []).forEach(service => {
+                    // Service clients would connect here
+                    connections.push({
+                        from: `service_client_${service}`,
+                        to: nodeName,
+                        type: 'service',
+                        name: service
+                    });
+                });
+                
+                graph.set(nodeName, connections);
+            });
+            
+            // Find the longest chain (simplified BFS)
+            let longestChain = [];
+            
+            nodes.forEach(startNode => {
+                const visited = new Set();
+                const stack = [[startNode.name, [], []]];
+                
+                while (stack.length > 0) {
+                    const [current, path, topics] = stack.pop();
+                    
+                    if (visited.has(current)) continue;
+                    visited.add(current);
+                    
+                    const newPath = [...path, current];
+                    const newTopics = [...topics];
+                    
+                    if (newPath.length > longestChain.length) {
+                        longestChain = {
+                            nodes: newPath,
+                            topics: newTopics,
+                            length: newPath.length
+                        };
+                    }
+                    
+                    const connections = graph.get(current) || [];
+                    connections.forEach(conn => {
+                        if (!visited.has(conn.to)) {
+                            const updatedTopics = [...newTopics, {
+                                from: conn.from,
+                                to: conn.to,
+                                topic: conn.name,
+                                type: conn.type
+                            }];
+                            stack.push([conn.to, newPath, updatedTopics]);
+                        }
+                    });
+                }
+            });
+            
+            return longestChain;
+        }
+
+        function displayFrequencyAnalysis(frequencyData) {
+        const container = document.getElementById('frequencyAnalysis');
+        if (!container) return;
+        
+        if (!frequencyData || frequencyData.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-2">
+                    <p class="text-xs text-slate-500">No frequency data available</p>
+                    <p class="text-[10px] text-slate-600 mt-1">Timers not detected in code</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Show top 5 frequencies
+        const topFrequencies = frequencyData.slice(0, 5);
+        
+        container.innerHTML = topFrequencies.map(freq => {
+            const barWidth = Math.min(100, (freq.frequency_hz / 100) * 100);
+            const freqValue = freq.frequency_hz || 0;
+            
+            // Determine color based on frequency
+            let colorClass = 'text-blue-400';
+            let barColor = 'bg-blue-500';
+            
+            if (freq.category === 'ULTRA_HIGH') {
+                colorClass = 'text-red-400';
+                barColor = 'bg-red-500';
+            } else if (freq.category === 'HIGH') {
+                colorClass = 'text-orange-400';
+                barColor = 'bg-orange-500';
+            } else if (freq.category === 'MEDIUM') {
+                colorClass = 'text-amber-400';
+                barColor = 'bg-amber-500';
+            }
+            
+            return `
+                <div class="space-y-1 mb-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-white truncate max-w-[120px]" title="${escapeHtml(freq.node_name)}">
+                            ${escapeHtml(freq.node_name.length > 15 ? freq.node_name.substring(0, 15) + '...' : freq.node_name)}
+                        </span>
+                        <span class="text-xs font-bold ${colorClass}">
+                            ${freqValue.toFixed(1)}Hz
+                        </span>
+                    </div>
+                    <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full ${barColor} transition-all duration-1000" 
+                            style="width: ${barWidth}%"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px]">
+                        <span class="text-slate-400">${freq.category || 'UNKNOWN'}</span>
+                        <span class="text-slate-500">${freq.criticality || 'Non-critical'}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+        function displayDecisionComplexity(decisionData) {
+            const container = document.getElementById('decisionComplexity');
+            if (!container) return;
+            
+            if (decisionData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-2">
+                        <p class="text-xs text-slate-500">No decision complexity data</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show top 5 decision-making nodes
+            const topDecisions = decisionData.slice(0, 5);
+            
+            container.innerHTML = topDecisions.map(decision => {
+                const decisionColor = decision.decisionLevel.includes('Complex') ? 'text-emerald-400' :
+                                     decision.decisionLevel.includes('Moderate') ? 'text-amber-400' :
+                                     'text-slate-400';
+                
+                return `
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-white truncate max-w-[120px]">${escapeHtml(decision.nodeName)}</span>
+                            <span class="text-xs font-bold ${decisionColor}">
+                                ${decision.decisionScore} pts
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-slate-400">Inputs: ${decision.inputCount}</span>
+                            <span class="text-[10px] text-slate-400">Outputs: ${decision.outputCount}</span>
+                            ${decision.actionCount > 0 ? 
+                                `<span class="text-[10px] text-rose-400">Actions: ${decision.actionCount}</span>` : ''}
+                        </div>
+                        <div class="text-[10px] ${decisionColor}">${decision.decisionLevel}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displayArchitectureLayers(layers) {
+            const container = document.getElementById('architectureLayers');
+            if (!container) return;
+            
+            // 1. Définir toutes les catégories possibles venant du backend
+            const layerData = [
+                { name: 'Perception', nodes: layers.perception || [], color: 'bg-blue-500' },
+                { name: 'Planning', nodes: layers.planning || [], color: 'bg-purple-500' },
+                { name: 'Control', nodes: layers.control || [], color: 'bg-green-500' },
+                { name: 'Execution', nodes: layers.execution || [], color: 'bg-orange-500' },
+                { name: 'Supervision', nodes: layers.supervision || [], color: 'bg-red-500' },
+                { name: 'Infrastructure', nodes: layers.infrastructure || [], color: 'bg-indigo-500' },
+                { name: 'Other', nodes: layers.other || [], color: 'bg-slate-500' }
+            ];
+
+            // 2. Calculer le total réel des nœuds classés pour avoir 100% au total
+            const totalClassified = layerData.reduce((acc, layer) => acc + layer.nodes.length, 0);
+            
+            container.innerHTML = layerData.map(layer => {
+                // Si une couche est vide (0 nodes), on peut choisir de ne pas l'afficher
+                if (layer.nodes.length === 0 && layer.name !== 'Other') return '';
+
+                const percentage = totalClassified > 0 
+                    ? ((layer.nodes.length / totalClassified) * 100).toFixed(1) 
+                    : 0;
+                
+                return `
+                    <div class="space-y-1 mb-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-slate-300">${layer.name}</span>
+                            <span class="text-[10px] font-mono text-slate-400">${layer.nodes.length} nodes</span>
+                        </div>
+                        <div class="h-1.5 bg-slate-800/50 rounded-full overflow-hidden border border-slate-700/30">
+                            <div class="h-full ${layer.color} shadow-[0_0_8px_rgba(0,0,0,0.4)] transition-all duration-1000" 
+                                style="width: ${percentage}%"></div>
+                        </div>
+                        <div class="flex justify-between text-[9px]">
+                            <span class="text-slate-500">${percentage}% of distribution</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displayCommunicationChain(chain) {
+            const container = document.getElementById('communicationChain');
+            const lengthElement = document.getElementById('chainLength');
+            
+            if (!chain || chain.nodes.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-sm text-slate-500">No significant communication chains detected</p>
+                    </div>
+                `;
+                if (lengthElement) {
+                    lengthElement.textContent = '0 nodes in chain';
+                }
+                return;
+            }
+            
+            if (lengthElement) {
+                lengthElement.textContent = `${chain.nodes.length} nodes in longest chain`;
+            }
+            
+            container.innerHTML = `
+                <div class="space-y-2">
+                    ${chain.nodes.map((node, index) => `
+                        <div class="chain-link">
+                            <div class="chain-index">${index + 1}</div>
+                            <span class="text-xs font-bold text-white">${escapeHtml(node)}</span>
+                            ${index < chain.nodes.length - 1 ? `
+                                <span class="chain-topic">→</span>
+                                ${chain.topics[index] ? `
+                                    <span class="text-[10px] text-slate-400 ml-2">via ${escapeHtml(chain.topics[index].topic)}</span>
+                                ` : ''}
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderArchitectureView(viewType) {
+            if (!currentData?.nodes) return;
+            
+            const container = document.getElementById('architectureDiagram');
+            if (!container) return;
+            
+            let mermaidCode = '';
+            
+            if (viewType === 'layered') {
+                mermaidCode = generateLayeredArchitectureView();
+            } else {
+                mermaidCode = generateCircularArchitectureView();
+            }
+            
+            container.innerHTML = `<div class="mermaid">${mermaidCode}</div>`;
+            
+            setTimeout(() => {
+                try {
+                    mermaid.init(undefined, container.querySelectorAll('.mermaid'));
+                } catch (mermaidError) {
+                    console.error('Mermaid architecture error:', mermaidError);
+                    container.innerHTML = `<div class="mermaid-error">Error: ${mermaidError.message}</div>`;
+                }
+            }, 100);
+        }
+
+        function generateLayeredArchitectureView() {
+            const analysis = analyzeSystemProfessionally(currentData.nodes);
+            const layers = analysis.architectureLayers;
+            
+            let code = 'graph TB\n';
+            
+            // Define layers
+            code += '    subgraph perception["🟦 Perception Layer"]\n';
+            layers.perception.forEach((node, i) => {
+                code += `        perception_${i}["${node.name}"]:::perception\n`;
+            });
+            code += '    end\n\n';
+            
+            code += '    subgraph planning["🟩 Planning Layer"]\n';
+            layers.planning.forEach((node, i) => {
+                code += `        planning_${i}["${node.name}"]:::planning\n`;
+            });
+            code += '    end\n\n';
+            
+            code += '    subgraph control["🟨 Control Layer"]\n';
+            layers.control.forEach((node, i) => {
+                code += `        control_${i}["${node.name}"]:::control\n`;
+            });
+            code += '    end\n\n';
+            
+            code += '    subgraph execution["🟪 Execution Layer"]\n';
+            layers.execution.forEach((node, i) => {
+                code += `        execution_${i}["${node.name}"]:::execution\n`;
+            });
+            code += '    end\n\n';
+            
+            code += '    subgraph supervision["🟥 Supervision Layer"]\n';
+            layers.supervision.forEach((node, i) => {
+                code += `        supervision_${i}["${node.name}"]:::supervision\n`;
+            });
+            code += '    end\n\n';
+            
+            // Add connections between layers
+            code += '    %% Layer connections\n';
+            code += '    perception --> planning\n';
+            code += '    planning --> control\n';
+            code += '    control --> execution\n';
+            code += '    supervision --> planning\n';
+            code += '    supervision --> control\n\n';
+            
+            // Style definitions
+            code += '    classDef perception fill:#1e3a8a,stroke:#3b82f6,color:#fff\n';
+            code += '    classDef planning fill:#065f46,stroke:#10b981,color:#fff\n';
+            code += '    classDef control fill:#92400e,stroke:#f59e0b,color:#fff\n';
+            code += '    classDef execution fill:#5b21b6,stroke:#8b5cf6,color:#fff\n';
+            code += '    classDef supervision fill:#9d174d,stroke:#ec4899,color:#fff\n';
+            
+            return code;
+        }
+
+        function generateCircularArchitectureView() {
+            const nodes = currentData.nodes.slice(0, 10); // Limit to 10 for clarity
+            
+            let code = 'graph LR\n';
+            
+            // Create circular layout
+            nodes.forEach((node, i) => {
+                const angle = (i / nodes.length) * 2 * Math.PI;
+                const radius = 5;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+                
+                code += `    node${i}["${node.name}"]\n`;
+            });
+            
+            // Add connections based on actual relationships
+            nodes.forEach((node, i) => {
+                (node.pubs || []).forEach((topic, topicIndex) => {
+                    // Find a subscriber for this topic
+                    const subscriberIndex = nodes.findIndex(n => 
+                        n !== node && (n.subs || []).includes(topic));
+                    
+                    if (subscriberIndex !== -1 && topicIndex < 2) { // Limit connections
+                        code += `    node${i} -- "${topic.substring(0, 15)}..." --> node${subscriberIndex}\n`;
+                    }
+                });
+            });
+            
+            // Add central system node
+            code += '\n    center[System Architecture]:::center\n';
+            
+            // Connect all nodes to center
+            nodes.forEach((node, i) => {
+                code += `    node${i} --> center\n`;
+            });
+            
+            code += '    classDef center fill:#1e1b4b,stroke:#6366f1,color:#fff,stroke-width:2px\n';
+            
+            return code;
+        }
+
+        // ========== EXISTING FUNCTIONS (with updates) ==========
+
+        function updateStats() {
+            if (!currentData?.metrics) return;
+            
+            const metrics = currentData.metrics;
+            const graphStats = currentData?.visualizations?.detailed_graph?.stats || {};
+            
+            // Update main statistics
+            const statNodes = document.getElementById('statNodes');
+            const statTopics = document.getElementById('statTopics');
+            const statServices = document.getElementById('statServices');
+            const statActions = document.getElementById('statActions');
+            const statTFFrames = document.getElementById('statTFFrames');
+            const statEdges = document.getElementById('statEdges');
+            
+            if (statNodes) statNodes.textContent = metrics.total_nodes || 0;
+            if (statTopics) statTopics.textContent = graphStats.total_topics || 0;
+            if (statServices) statServices.textContent = graphStats.total_services || 0;
+            if (statActions) statActions.textContent = graphStats.total_actions || 0;
+            if (statTFFrames) statTFFrames.textContent = graphStats.total_tf_frames || 0;
+            if (statEdges) statEdges.textContent = graphStats.total_edges || 0;
+            
+            // Show the statistics section
+            const statsSection = document.getElementById('statsSection');
+            if (statsSection) {
+                statsSection.classList.remove('hidden');
+            }
+        }
+
+        function renderTree(node) {
+            // Existing renderTree function...
+            if (!node) return '';
+            
+            if (node.type === 'folder') {
+                const itemCount = node.children?.length || 0;
+                const hasLaunch = node.children?.some(child => 
+                    child && child.name && (
+                        child.name.includes('launch') || 
+                        child.name.endsWith('.launch.py') || 
+                        child.name.endsWith('.launch.xml') ||
+                        child.name.includes('_launch')
+                    )
+                );
+                
+                return `<div class="mb-1">
+                    <div onclick="this.nextElementSibling.classList.toggle('hidden')" 
+                         class="cursor-pointer hover:text-indigo-400 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <svg class="w-3 h-3 mr-1 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                            <span class="${hasLaunch ? 'text-amber-400' : 'text-slate-300'}">📁 ${node.name || 'Unnamed'}</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">${itemCount}</span>
+                    </div>
+                    <div class="folder-content hidden ml-4">${(node.children || []).map(child => renderTree(child)).join('')}</div>
+                </div>`;
+            }
+            
+            const icon = node.name?.includes('.launch') ? '🚀' : 
+                        node.name?.includes('.py') ? '🐍' : 
+                        node.name?.includes('.cpp') ? '⚙️' : '📄';
+            const isLaunchFile = node.name && (
+                node.name.includes('launch') || 
+                node.name.endsWith('.launch.py') || 
+                node.name.endsWith('.launch.xml')
+            );
+            
+            return `<div class="ml-6 text-slate-400 hover:text-slate-200 cursor-pointer text-xs py-1 ${isLaunchFile ? 'border-l-2 border-amber-500 pl-2' : 'pl-4'}" 
+                    onclick="${isLaunchFile ? `highlightFileInTree('${escapeHtml(node.name)}')` : ''}">
+                ${icon} ${node.name || 'Unnamed'}
+                ${isLaunchFile ? '<span class="text-[8px] text-amber-400 ml-2">LAUNCH</span>' : ''}
+            </div>`;
+        }
+
+        function displayROS2Packages(packagesData) {
+            const section = document.getElementById('packagesDetectedSection');
+            const countElement = document.getElementById('rosPackagesCount');
+            const gridElement = document.getElementById('rosPackagesGrid');
+            
+            if (!section || !packagesData || Object.keys(packagesData).length === 0) {
+                if (section) section.classList.add('hidden');
+                return;
+            }
+            
+            section.classList.remove('hidden');
+            
+            const packageCount = Object.keys(packagesData).length;
+            if (countElement) {
+                countElement.textContent = `${packageCount} ROS2 package(s)`;
+            }
+            
+            if (gridElement) {
+                gridElement.innerHTML = Object.values(packagesData).map(pkg => {
+                    const typeIcon = pkg.type === 'python' ? '🐍' : 
+                                   pkg.type === 'cpp' ? '⚙️' : '❓';
+                    const typeColor = pkg.type === 'python' ? 'bg-blue-900/30 text-blue-400' :
+                                    pkg.type === 'cpp' ? 'bg-purple-900/30 text-purple-400' :
+                                    'bg-slate-800/30 text-slate-400';
+                    
+                    return `
+                    <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 hover:border-emerald-500/50 transition">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold text-white text-sm">${escapeHtml(pkg.name)}</h4>
+                            <span class="text-xs ${typeColor} px-2 py-1 rounded">${typeIcon} ${pkg.type}</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-2 truncate">${escapeHtml(pkg.path)}</p>
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-500">
+                                ${pkg.node_count || 0} node(s)
+                            </span>
+                            <div class="flex gap-2">
+                                <button onclick="highlightPackageFiles('${escapeHtml(pkg.name)}')" 
+                                        class="text-slate-400 hover:text-slate-300">
+                                    View files
+                                </button>
+                                <button onclick="openPackageDetail('${escapeHtml(pkg.name)}')" 
+                                        class="text-emerald-400 hover:text-emerald-300 font-semibold">
+                                    Explore →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function displayValidationResults(validationData) {
+            const section = document.getElementById('validationSection');
+            if (!section || !validationData) return;
+            
+            section.classList.remove('hidden');
+            
+            const summary = validationData.summary || {};
+            const issues = validationData.issues || [];
+            
+            // Update statistics
+            document.getElementById('validationTotal').textContent = summary.total_issues || 0;
+            document.getElementById('validationErrors').textContent = summary.errors || 0;
+            document.getElementById('validationWarnings').textContent = summary.warnings || 0;
+            document.getElementById('validationInfos').textContent = summary.infos || 0;
+            
+            // Update status
+            const statusElement = document.getElementById('validationStatus');
+            if (summary.errors > 0) {
+                statusElement.textContent = '⚠️ Critical issues';
+                statusElement.className = 'text-xs bg-red-900/30 text-red-400 px-3 py-1 rounded-full font-semibold';
+            } else if (summary.warnings > 0) {
+                statusElement.textContent = '⚠️ Warnings';
+                statusElement.className = 'text-xs bg-amber-900/30 text-amber-400 px-3 py-1 rounded-full font-semibold';
+            } else if (summary.total_issues > 0) {
+                statusElement.textContent = '✓ Information';
+                statusElement.className = 'text-xs bg-blue-900/30 text-blue-400 px-3 py-1 rounded-full font-semibold';
+            } else {
+                statusElement.textContent = '✓ Validation passed';
+                statusElement.className = 'text-xs bg-emerald-900/30 text-emerald-400 px-3 py-1 rounded-full font-semibold';
+            }
+            
+            // Display issues
+            const issuesContainer = document.getElementById('validationIssues');
+            if (issuesContainer) {
+                if (issues.length === 0) {
+                    issuesContainer.innerHTML = `
+                        <div class="text-center py-8">
+                            <div class="text-emerald-400 mb-2">
+                                <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <p class="text-slate-500 text-sm">No issues detected! Code follows ROS2 best practices.</p>
+                        </div>
+                    `;
+                } else {
+                    issuesContainer.innerHTML = issues.map(issue => {
+                        const severityColors = {
+                            'error': 'bg-red-900/20 border-red-700/30 text-red-400',
+                            'warning': 'bg-amber-900/20 border-amber-700/30 text-amber-400',
+                            'info': 'bg-blue-900/20 border-blue-700/30 text-blue-400'
+                        };
+                        
+                        const severityIcons = {
+                            'error': '❌',
+                            'warning': '⚠️',
+                            'info': 'ℹ️'
+                        };
+                        
+                        const colorClass = severityColors[issue.severity] || 'bg-slate-800/30 border-slate-700/30';
+                        const icon = severityIcons[issue.severity] || '📝';
+                        
+                        const shortPath = issue.file_path.split('/').slice(-3).join('/');
+                        
+                        return `
+                        <div class="p-4 rounded-xl border ${colorClass}">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm">${icon}</span>
+                                    <span class="font-bold text-xs uppercase">${issue.issue_type}</span>
+                                    <span class="text-xs text-slate-500">• Line ${issue.line_number}</span>
+                                </div>
+                                <span class="text-xs px-2 py-1 rounded bg-slate-800/50 text-slate-400">
+                                    ${shortPath}
+                                </span>
+                            </div>
+                            <p class="text-sm text-white mb-2">${escapeHtml(issue.message)}</p>
+                            ${issue.code_snippet ? `
+                            <div class="mt-2 p-2 bg-black/30 rounded border border-slate-700/50">
+                                <code class="text-xs font-mono text-slate-300">${escapeHtml(issue.code_snippet)}</code>
+                            </div>
+                            ` : ''}
+                        </div>
+                        `;
+                    }).join('');
+                }
+            }
+        }
+        // ========== FUNCTIONS FOR DETECTED ROS2 PACKAGES (from second script) ==========
+
+        function displayROS2Packages(packagesData) {
+            const section = document.getElementById('packagesDetectedSection');
+            const countElement = document.getElementById('rosPackagesCount');
+            const gridElement = document.getElementById('rosPackagesGrid');
+            
+            if (!section || !packagesData || Object.keys(packagesData).length === 0) {
+                if (section) section.classList.add('hidden');
+                return;
+            }
+            
+            section.classList.remove('hidden');
+            
+            const packageCount = Object.keys(packagesData).length;
+            if (countElement) {
+                countElement.textContent = `${packageCount} ROS2 package(s)`;
+            }
+            
+            if (gridElement) {
+                gridElement.innerHTML = Object.values(packagesData).map(pkg => {
+                    const typeIcon = pkg.type === 'python' ? '🐍' : 
+                                pkg.type === 'cpp' ? '⚙️' : '❓';
+                    const typeColor = pkg.type === 'python' ? 'bg-blue-900/30 text-blue-400' :
+                                    pkg.type === 'cpp' ? 'bg-purple-900/30 text-purple-400' :
+                                    'bg-slate-800/30 text-slate-400';
+                    
+                    return `
+                    <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 hover:border-emerald-500/50 transition">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold text-white text-sm">${escapeHtml(pkg.name)}</h4>
+                            <span class="text-xs ${typeColor} px-2 py-1 rounded">${typeIcon} ${pkg.type}</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-2 truncate">${escapeHtml(pkg.path)}</p>
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-500">
+                                ${pkg.node_count || 0} node(s)
+                            </span>
+                            <div class="flex gap-2">
+                                <button onclick="highlightPackageFiles('${escapeHtml(pkg.name)}')" 
+                                        class="text-slate-400 hover:text-slate-300">
+                                    View files
+                                </button>
+                                <button onclick="openPackageDetail('${escapeHtml(pkg.name)}')" 
+                                        class="text-emerald-400 hover:text-emerald-300 font-semibold">
+                                    Explore →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function highlightPackageFiles(packageName) {
+            if (!currentData || !currentData.packages_detected) return;
+            
+            const packageInfo = Object.values(currentData.packages_detected).find(
+                pkg => pkg.name === packageName
+            );
+            
+            if (!packageInfo || !packageInfo.files) return;
+            
+            const fileTree = document.getElementById('fileTree');
+            if (fileTree) {
+                fileTree.querySelectorAll('.folder-content').forEach(content => {
+                    content.classList.remove('hidden');
+                });
+                
+                setTimeout(() => {
+                    packageInfo.files.forEach(file => {
+                        const fileItems = fileTree.querySelectorAll('div');
+                        fileItems.forEach(item => {
+                            if (item.textContent.includes(file)) {
+                                item.classList.add('node-highlight');
+                                setTimeout(() => {
+                                    item.classList.remove('node-highlight');
+                                }, 3000);
+                            }
+                        });
+                    });
+                }, 100);
+            }
+        }
+
+        // ========== FUNCTIONS FOR PACKAGE DETAIL SECTION ==========
+
+        function openPackageDetail(packageName) {
+            if (!currentData || !currentData.packages_detected) return;
+            
+            // Find package data
+            const packageInfo = Object.values(currentData.packages_detected).find(
+                pkg => pkg.name === packageName
+            );
+            
+            if (!packageInfo) {
+                alert(`Package ${packageName} not found`);
+                return;
+            }
+            
+            currentPackageDetail = packageName;
+            currentPackageData = packageInfo;
+            
+            // Update interface
+            document.getElementById('packageDetailTitle').textContent = packageName;
+            
+            // Update package type
+            const typeElement = document.getElementById('packageDetailType');
+            const typeIcon = packageInfo.type === 'python' ? '🐍' : 
+                            packageInfo.type === 'cpp' ? '⚙️' : '❓';
+            const typeColor = packageInfo.type === 'python' ? 'bg-blue-900/30 text-blue-400' :
+                            packageInfo.type === 'cpp' ? 'bg-purple-900/30 text-purple-400' :
+                            'bg-slate-800/30 text-slate-400';
+            
+            typeElement.textContent = `${typeIcon} ${packageInfo.type || 'unknown'}`;
+            typeElement.className = `text-xs px-3 py-1 rounded-full font-semibold ${typeColor}`;
+            
+            // Hide other sections
+            document.getElementById('packagesDetectedSection').classList.add('hidden');
+            document.getElementById('validationSection').classList.add('hidden');
+            
+            // Show detail section
+            document.getElementById('packageDetailSection').classList.remove('hidden');
+            
+            // Load package data
+            loadPackageDetailData(packageName);
+            
+            // Activate default tab
+            switchPackageDetailTab('overview');
+        }
+
+        function loadPackageDetailData(packageName) {
+            if (!currentData) return;
+            
+            // Find all nodes of this package
+            const packageNodes = currentData.nodes.filter(node => 
+                node.package === packageName || 
+                (currentPackageData && node.file_path && node.file_path.includes(currentPackageData.path))
+            );
+            
+            // Find launch files of this package
+            const packageLaunches = currentData.launch_packages?.[packageName]?.launch_files || [];
+            
+            // Calculate statistics
+            const stats = {
+                nodes: packageNodes.length,
+                pubs: packageNodes.reduce((sum, node) => sum + (node.pubs?.length || 0), 0),
+                subs: packageNodes.reduce((sum, node) => sum + (node.subs?.length || 0), 0),
+                srvs: packageNodes.reduce((sum, node) => sum + (node.srvs?.length || 0), 0),
+                acts: packageNodes.reduce((sum, node) => sum + (node.acts?.length || 0), 0),
+                params: packageNodes.reduce((sum, node) => sum + (node.params?.length || 0), 0),
+                launch: packageLaunches.length
+            };
+            
+            // Update statistics
+            document.getElementById('packageStatNodes').textContent = stats.nodes;
+            document.getElementById('packageStatPubs').textContent = stats.pubs;
+            document.getElementById('packageStatSubs').textContent = stats.subs;
+            document.getElementById('packageStatLaunch').textContent = stats.launch;
+            
+            // Update badges - CORRECTION HERE: Directly set the node count from package data
+            document.getElementById('nodeCountBadge').textContent = currentPackageData.node_count || stats.nodes;
+            document.getElementById('launchCountBadge').textContent = stats.launch;
+            
+            // Update information
+            document.getElementById('packagePath').textContent = currentPackageData.path || 'Not specified';
+            document.getElementById('packageBuildType').textContent = currentPackageData.type || 'unknown';
+            document.getElementById('packageFileCount').textContent = currentPackageData.files?.length || 0;
+            document.getElementById('packageServicesActions').textContent = `${stats.srvs} services, ${stats.acts} actions`;
+            
+            // Store data for other tabs
+            window.packageDetailData = {
+                nodes: packageNodes,
+                launches: packageLaunches,
+                stats: stats
+            };
+        }
+
+        function switchPackageDetailTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.package-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(`packageTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.add('active');
+            
+            // Hide all tab contents
+            document.querySelectorAll('.package-tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.classList.add('hidden');
+            });
+            
+            // Show active tab content
+            const activeContent = document.getElementById(`packageTabContent${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
+            activeContent.classList.remove('hidden');
+            activeContent.classList.add('active');
+            
+            // Load tab-specific content
+            switch(tabName) {
+                case 'nodes':
+                    loadPackageNodesTab();
+                    break;
+                case 'graph':
+                    loadPackageGraphTab();
+                    break;
+                case 'launch':
+                    loadPackageLaunchTab();
+                    break;
+                case 'connections':
+                    loadPackageConnectionsTab();
+                    break;
+                case 'overview':
+                    // Already loaded
+                    break;
+            }
+        }
+
+        function loadPackageNodesTab() {
+            if (!window.packageDetailData || !window.packageDetailData.nodes) return;
+            
+            const nodes = window.packageDetailData.nodes;
+            const container = document.getElementById('packageNodesList');
+            
+            if (!container) return;
+            
+            if (nodes.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="text-slate-500 mb-2">
+                            <svg class="w-12 h-12 mx-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                        </div>
+                        <p class="text-slate-500 text-sm">No nodes detected in this package</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = nodes.map((node, index) => {
+                const langColor = node.lang === 'Python' ? 'bg-blue-900/30 text-blue-400' : 
+                                node.lang === 'C++' ? 'bg-purple-900/30 text-purple-400' : 
+                                'bg-slate-800/30 text-slate-400';
+                
+                return `
+                    <div class="node-details-card p-4" id="node-${index}">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-indigo-900/30 flex items-center justify-center">
+                                    <span class="text-lg">⚙️</span>
+                                </div>
+                                <div>
+                                    <h5 class="font-bold text-white">${escapeHtml(node.name || 'Unnamed')}</h5>
+                                    <p class="text-xs text-slate-400">${escapeHtml(node.file || '')}</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-2">
+                                <span class="text-xs ${langColor} px-2 py-1 rounded">${node.lang || 'Unknown'}</span>
+                                ${node.hz ? `<span class="text-xs font-bold text-indigo-400">${node.hz} Hz</span>` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Publishers -->
+                            <div>
+                                <h6 class="text-xs font-bold text-emerald-400 uppercase mb-2 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+                                    </svg>
+                                    Publishers (${node.pubs?.length || 0})
+                                </h6>
+                                <div class="space-y-1">
+                                    ${(node.pubs || []).slice(0, 3).map(pub => `
+                                        <div class="text-xs bg-emerald-900/20 text-emerald-300 px-3 py-1.5 rounded border border-emerald-800/30">
+                                            ${escapeHtml(pub)}
+                                        </div>
+                                    `).join('')}
+                                    ${(node.pubs || []).length > 3 ? `
+                                        <div class="text-xs text-slate-500 text-center">+ ${(node.pubs || []).length - 3} more</div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            <!-- Subscribers -->
+                            <div>
+                                <h6 class="text-xs font-bold text-amber-400 uppercase mb-2 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                                    </svg>
+                                    Subscribers (${node.subs?.length || 0})
+                                </h6>
+                                <div class="space-y-1">
+                                    ${(node.subs || []).slice(0, 3).map(sub => `
+                                        <div class="text-xs bg-amber-900/20 text-amber-300 px-3 py-1.5 rounded border border-amber-800/30">
+                                            ${escapeHtml(sub)}
+                                        </div>
+                                    `).join('')}
+                                    ${(node.subs || []).length > 3 ? `
+                                        <div class="text-xs text-slate-500 text-center">+ ${(node.subs || []).length - 3} more</div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Services and Actions -->
+                        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Services -->
+                            ${(node.srvs || []).length > 0 ? `
+                            <div>
+                                <h6 class="text-xs font-bold text-purple-400 uppercase mb-2">Services</h6>
+                                <div class="space-y-1">
+                                    ${(node.srvs || []).slice(0, 2).map(srv => `
+                                        <div class="text-xs bg-purple-900/20 text-purple-300 px-3 py-1.5 rounded border border-purple-800/30">
+                                            ${escapeHtml(srv)}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            <!-- Actions -->
+                            ${(node.acts || []).length > 0 ? `
+                            <div>
+                                <h6 class="text-xs font-bold text-rose-400 uppercase mb-2">Actions</h6>
+                                <div class="space-y-1">
+                                    ${(node.acts || []).slice(0, 2).map(act => `
+                                        <div class="text-xs bg-rose-900/20 text-rose-300 px-3 py-1.5 rounded border border-rose-800/30">
+                                            ${escapeHtml(act)}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Parameters -->
+                        ${(node.params || []).length > 0 ? `
+                        <div class="mt-4">
+                            <h6 class="text-xs font-bold text-sky-400 uppercase mb-2">Parameters (${node.params.length})</h6>
+                            <div class="flex flex-wrap gap-2">
+                                ${(node.params || []).slice(0, 5).map(param => `
+                                    <span class="text-xs bg-sky-900/20 text-sky-300 px-2 py-1 rounded">
+                                        ${escapeHtml(param)}
+                                    </span>
+                                `).join('')}
+                                ${(node.params || []).length > 5 ? `
+                                    <span class="text-xs text-slate-500">+${(node.params || []).length - 5}</span>
+                                ` : ''}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <!-- Action buttons -->
+                        <div class="mt-4 pt-4 border-t border-slate-800 flex justify-end">
+                            <button onclick="showNodeGraph('${escapeHtml(node.name)}')" 
+                                    class="text-xs bg-indigo-900/30 hover:bg-indigo-800/30 text-indigo-400 px-3 py-1.5 rounded">
+                                View graph
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterNodes(lang) {
+            if (!window.packageDetailData || !window.packageDetailData.nodes) return;
+            
+            const nodes = window.packageDetailData.nodes;
+            const container = document.getElementById('packageNodesList');
+            
+            if (!container) return;
+            
+            let filteredNodes = nodes;
+            if (lang === 'python') {
+                filteredNodes = nodes.filter(n => n.lang === 'Python');
+            } else if (lang === 'cpp') {
+                filteredNodes = nodes.filter(n => n.lang === 'C++');
+            }
+            
+            // For simplicity, reload everything
+            loadPackageNodesTab();
+        }
+
+        function loadPackageGraphTab() {
+            if (!window.packageDetailData || !window.packageDetailData.nodes) return;
+            
+            const container = document.getElementById('packageGraphContainer');
+            if (!container) return;
+            
+            renderPackageGraphView('simple');
+        }
+
+        function renderPackageGraphView(type) {
+            if (!window.packageDetailData || !window.packageDetailData.nodes) return;
+            
+            const nodes = window.packageDetailData.nodes;
+            const container = document.getElementById('packageGraphContainer');
+            
+            if (!container) return;
+            
+            let mermaidCode = '';
+            
+            if (type === 'simple') {
+                // Simple view: nodes and main connections
+                mermaidCode = 'graph TD\n';
+                mermaidCode += '    style pkg fill:#1e1b4b,stroke:#6366f1,color:#fff\n';
+                mermaidCode += `    pkg["Package: ${escapeHtml(currentPackageDetail)}"]\n\n`;
+                
+                nodes.forEach(node => {
+                    const nodeId = `node_${node.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    mermaidCode += `    ${nodeId}["${node.name}"]:::node\n`;
+                    
+                    // Add connections
+                    if (node.pubs && node.pubs.length > 0) {
+                        node.pubs.slice(0, 2).forEach((pub, i) => {
+                            const topicId = `topic_${nodeId}_pub_${i}`;
+                            mermaidCode += `    ${topicId}(("📡")):::topic\n`;
+                            mermaidCode += `    ${nodeId} --> ${topicId}\n`;
+                        });
+                    }
+                });
+                
+                mermaidCode += '    classDef node fill:#0ea5e9,color:#fff,stroke:#0369a1\n';
+                mermaidCode += '    classDef topic fill:#7c3aed,color:#fff,stroke:#4c1d95\n';
+                
+            } else {
+                // Detailed view: with all topics and connections
+                mermaidCode = 'graph LR\n';
+                
+                nodes.forEach(node => {
+                    const nodeId = `node_${node.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    const langClass = node.lang === 'Python' ? 'python' : 'cpp';
+                    mermaidCode += `    ${nodeId}["${node.name}"]:::${langClass}\n`;
+                    
+                    // Publishers
+                    (node.pubs || []).forEach((pub, i) => {
+                        const topicId = `pub_${nodeId}_${i}`;
+                        mermaidCode += `    ${topicId}["${escapeHtml(pub.split('::').pop() || pub)}"]:::topic\n`;
+                        mermaidCode += `    ${nodeId} -- Publishes --> ${topicId}\n`;
+                    });
+                    
+                    // Subscribers
+                    (node.subs || []).forEach((sub, i) => {
+                        const topicId = `sub_${nodeId}_${i}`;
+                        mermaidCode += `    ${topicId}["${escapeHtml(sub.split('::').pop() || sub)}"]:::topic\n`;
+                        mermaidCode += `    ${topicId} -- Receives --> ${nodeId}\n`;
+                    });
+                });
+                
+                mermaidCode += '    classDef python fill:#1e40af,color:#fff,stroke:#1d4ed8\n';
+                mermaidCode += '    classDef cpp fill:#5b21b6,color:#fff,stroke:#7c3aed\n';
+                mermaidCode += '    classDef topic fill:#065f46,color:#fff,stroke:#10b981\n';
+            }
+            
+            container.innerHTML = `<div class="mermaid">${mermaidCode}</div>`;
+            
+            // Initialize Mermaid
+            setTimeout(() => {
+                try {
+                    mermaid.init(undefined, container.querySelectorAll('.mermaid'));
+                } catch (mermaidError) {
+                    console.error('Mermaid error:', mermaidError);
+                    container.innerHTML = `<div class="mermaid-error">Error: ${mermaidError.message}</div>`;
+                }
+            }, 100);
+        }
+
+        function showNodeGraph(nodeName) {
+            if (!window.packageDetailData || !window.packageDetailData.nodes) return;
+            
+            const node = window.packageDetailData.nodes.find(n => n.name === nodeName);
+            if (!node) return;
+            
+            const container = document.getElementById('packageGraphContainer');
+            if (!container) return;
+            
+            let mermaidCode = 'graph TD\n';
+            mermaidCode += `    node["${node.name}"]:::center\n`;
+            
+            // Publishers
+            (node.pubs || []).forEach((pub, i) => {
+                const topicId = `pub_${i}`;
+                mermaidCode += `    ${topicId}["${escapeHtml(pub)}"]:::pub\n`;
+                mermaidCode += `    node --> ${topicId}\n`;
+            });
+            
+            // Subscribers
+            (node.subs || []).forEach((sub, i) => {
+                const topicId = `sub_${i}`;
+                mermaidCode += `    ${topicId}["${escapeHtml(sub)}"]:::sub\n`;
+                mermaidCode += `    ${topicId} --> node\n`;
+            });
+            
+            // Services
+            (node.srvs || []).forEach((srv, i) => {
+                const srvId = `srv_${i}`;
+                mermaidCode += `    ${srvId}["${escapeHtml(srv)}"]:::srv\n`;
+                mermaidCode += `    node -.-> ${srvId}\n`;
+            });
+            
+            // Actions
+            (node.acts || []).forEach((act, i) => {
+                const actId = `act_${i}`;
+                mermaidCode += `    ${actId}["${escapeHtml(act)}"]:::act\n`;
+                mermaidCode += `    node ==> ${actId}\n`;
+            });
+            
+            mermaidCode += '    classDef center fill:#1e3a8a,stroke:#3b82f6,color:#fff,stroke-width:2px\n';
+            mermaidCode += '    classDef pub fill:#065f46,stroke:#10b981,color:#fff\n';
+            mermaidCode += '    classDef sub fill:#92400e,stroke:#f59e0b,color:#fff\n';
+            mermaidCode += '    classDef srv fill:#5b21b6,stroke:#8b5cf6,color:#fff\n';
+            mermaidCode += '    classDef act fill:#9d174d,stroke:#ec4899,color:#fff\n';
+            
+            container.innerHTML = `<div class="mermaid">${mermaidCode}</div>`;
+            
+            setTimeout(() => {
+                try {
+                    mermaid.init(undefined, container.querySelectorAll('.mermaid'));
+                } catch (mermaidError) {
+                    console.error('Mermaid error:', mermaidError);
+                }
+            }, 100);
+        }
+
+        function loadPackageLaunchTab() {
+            if (!window.packageDetailData || !window.packageDetailData.launches) return;
+            
+            const launches = window.packageDetailData.launches;
+            const container = document.getElementById('packageLaunchFiles');
+            
+            if (!container) return;
+            
+            if (launches.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="text-slate-500 mb-2">
+                            <svg class="w-12 h-12 mx-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <p class="text-slate-500 text-sm">No launch files detected in this package</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = launches.map(launch => {
+                const typeIcon = launch.type === 'python' ? '🐍' : 
+                                launch.type === 'xml' ? '📋' : 
+                                launch.type === 'yaml' ? '📊' : '📄';
+                
+                return `
+                    <div class="launch-file-item p-4">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-lg bg-amber-900/30 flex items-center justify-center">
+                                    <span class="text-2xl">🚀</span>
+                                </div>
+                                <div>
+                                    <h5 class="font-bold text-white">${escapeHtml(launch.file || 'Unnamed')}</h5>
+                                    <p class="text-xs text-slate-400 truncate max-w-md">${escapeHtml(launch.path || '')}</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-2">
+                                <span class="text-xs bg-amber-900/30 text-amber-400 px-2 py-1 rounded">
+                                    ${typeIcon} ${launch.type || 'unknown'}
+                                </span>
+                                <span class="text-xs text-slate-500">${launch.nodes?.length || 0} nodes</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Launched nodes -->
+                        ${launch.nodes && launch.nodes.length > 0 ? `
+                        <div class="mb-3">
+                            <h6 class="text-xs font-bold text-slate-300 mb-2">Launched Nodes</h6>
+                            <div class="flex flex-wrap gap-2">
+                                ${launch.nodes.map(node => `
+                                    <button onclick="highlightNode('${escapeHtml(node)}')" 
+                                            class="text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-1 rounded transition">
+                                        ${escapeHtml(node)}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <!-- Parameters -->
+                        ${launch.params && launch.params.length > 0 ? `
+                        <div class="mb-3">
+                            <h6 class="text-xs font-bold text-slate-300 mb-2">Parameters</h6>
+                            <div class="flex flex-wrap gap-2">
+                                ${launch.params.map(param => `
+                                    <span class="text-xs bg-sky-900/30 text-sky-300 px-2 py-1 rounded">
+                                        ${escapeHtml(param)}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <!-- Comments -->
+                        ${launch.comments ? `
+                        <div class="pt-3 border-t border-slate-800">
+                            <p class="text-xs text-slate-400 italic">${escapeHtml(launch.comments)}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadPackageConnectionsTab() {
+            if (!window.packageDetailData || !window.packageDetailData.nodes) return;
+            
+            const nodes = window.packageDetailData.nodes;
+            
+            // Collect all connections
+            const topics = new Set();
+            const services = new Set();
+            const actions = new Set();
+            
+            nodes.forEach(node => {
+                (node.pubs || []).forEach(pub => topics.add(pub));
+                (node.subs || []).forEach(sub => topics.add(sub));
+                (node.srvs || []).forEach(srv => services.add(srv));
+                (node.acts || []).forEach(act => actions.add(act));
+            });
+            
+            // Update counters
+            document.getElementById('connectionTopicsCount').textContent = topics.size;
+            document.getElementById('connectionServicesCount').textContent = services.size;
+            document.getElementById('connectionActionsCount').textContent = actions.size;
+            
+            // Display topics
+            const topicsContainer = document.getElementById('connectionTopicsList');
+            if (topicsContainer) {
+                if (topics.size === 0) {
+                    topicsContainer.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">No topics</p>';
+                } else {
+                    topicsContainer.innerHTML = Array.from(topics).map(topic => `
+                        <div class="connection-item topic">
+                            <div class="font-mono text-xs text-white">${escapeHtml(topic)}</div>
+                            <div class="text-[10px] text-slate-400 mt-1">
+                                Used by: ${nodes.filter(n => 
+                                    (n.pubs || []).includes(topic) || (n.subs || []).includes(topic)
+                                ).length} node(s)
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+            
+            // Display services
+            const servicesContainer = document.getElementById('connectionServicesList');
+            if (servicesContainer) {
+                if (services.size === 0) {
+                    servicesContainer.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">No services</p>';
+                } else {
+                    servicesContainer.innerHTML = Array.from(services).map(service => `
+                        <div class="connection-item service">
+                            <div class="font-mono text-xs text-white">${escapeHtml(service)}</div>
+                            <div class="text-[10px] text-slate-400 mt-1">
+                                Used by: ${nodes.filter(n => (n.srvs || []).includes(service)).length} node(s)
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+            
+            // Display actions
+            const actionsContainer = document.getElementById('connectionActionsList');
+            if (actionsContainer) {
+                if (actions.size === 0) {
+                    actionsContainer.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">No actions</p>';
+                } else {
+                    actionsContainer.innerHTML = Array.from(actions).map(action => `
+                        <div class="connection-item action">
+                            <div class="font-mono text-xs text-white">${escapeHtml(action)}</div>
+                            <div class="text-[10px] text-slate-400 mt-1">
+                                Used by: ${nodes.filter(n => (n.acts || []).includes(action)).length} node(s)
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        function closePackageDetail() {
+            document.getElementById('packageDetailSection').classList.add('hidden');
+            document.getElementById('packagesDetectedSection').classList.remove('hidden');
+            document.getElementById('validationSection').classList.remove('hidden');
+            currentPackageDetail = null;
+            currentPackageData = null;
+        }
+
+        function exportPackageInfo() {
+            if (!currentPackageDetail || !window.packageDetailData) return;
+            
+            const data = {
+                package: currentPackageDetail,
+                info: currentPackageData,
+                nodes: window.packageDetailData.nodes,
+                launches: window.packageDetailData.launches,
+                stats: window.packageDetailData.stats,
+                export_date: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ros2-package-${currentPackageDetail}-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function highlightNode(nodeName) {
+            const nodesList = document.getElementById('packageNodesList');
+            if (!nodesList) return;
+            
+            const nodeElements = nodesList.querySelectorAll('.node-details-card');
+            nodeElements.forEach(el => {
+                if (el.querySelector('h5')?.textContent === nodeName) {
+                    el.classList.add('node-highlight');
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    setTimeout(() => {
+                        el.classList.remove('node-highlight');
+                    }, 3000);
+                }
+            });
+        }
+        
+
+        async function process() {
+            const fileInput = document.getElementById('zip');
+            const loading = document.getElementById('loading');
+            
+            if (!fileInput.files[0]) {
+                alert('Please select a ZIP file');
+                return;
+            }
+            
+            try {
+                if (loading) {
+                    loading.classList.remove('hidden');
+                }
+                
+                const fd = new FormData();
+                fd.append('file', fileInput.files[0]);
+                
+                const res = await fetch('http://localhost:8000/analyze', {
+                    method: 'POST',
+                    body: fd
+                });
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
+                }
+                
+                const data = await res.json();
+                currentData = data;
+                
+                // 1. Update statistics
+                updateStats();
+                
+                // 2. Display file tree
+                const fileTree = document.getElementById('fileTree');
+                if (fileTree) {
+                    fileTree.innerHTML = renderTree(data.tree || {name: 'workspace', type: 'folder', children: []});
+                }
+                
+                // 3. Display ROS2 packages
+                if (data.packages_detected) {
+                    displayROS2Packages(data.packages_detected);
+                } else {
+                    document.getElementById('packagesDetectedSection').classList.add('hidden');
+                }
+                
+                // 4. Display validation results
+                if (data.validation) {
+                    displayValidationResults(data.validation);
+                } else {
+                    document.getElementById('validationSection').classList.add('hidden');
+                }
+                
+                // 5. Perform professional behavioral analysis
+                performProfessionalAnalysis();
+                
+                // 6. Show TF visualization
+                if (data.visualizations?.tf_mermaid) {
+                    document.getElementById('tfVisualizationSection').classList.remove('hidden');
+                    renderTFGraph('tf');
+                }
+                
+                // Hide any open package content
+                closePackageDetail();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error analyzing workspace: ' + error.message);
+            } finally {
+                if (loading) {
+                    loading.classList.add('hidden');
+                }
+            }
+        }
+
+        // ========== TF GRAPH FUNCTIONS ==========
+
+        function renderTFGraph(viewType = 'tf', event = null) {
+            currentTFView = viewType;
+            
+            // Update button states
+            const tfControls = document.querySelector('#tfVisualization').closest('.visualization-section');
+            if (tfControls) {
+                const buttons = tfControls.querySelectorAll('.graph-view-btn');
+                buttons.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                if (event && event.target) {
+                    event.target.classList.add('active');
+                } else {
+                    const targetBtn = tfControls.querySelector(`.graph-view-btn:nth-child(${viewType === 'tf' ? 1 : viewType === 'custom' ? 2 : 3})`);
+                    if (targetBtn) {
+                        targetBtn.classList.add('active');
+                    }
+                }
+            }
+            
+            const container = document.getElementById('tfVisualization');
+            
+            if (!currentData?.visualizations?.tf_mermaid) {
+                if (container) {
+                    container.innerHTML = '<div class="mermaid-error">TF data not available</div>';
+                }
+                return;
+            }
+            
+            let mermaidCode = '';
+            
+            switch(viewType) {
+                case 'tf':
+                    mermaidCode = currentData.visualizations.tf_mermaid;
+                    break;
+                    
+                case 'custom':
+                    if (currentData.tf?.custom && currentData.tf.custom.length > 0) {
+                        mermaidCode = 'graph TD\n';
+                        currentData.tf.custom.forEach(([parent, child], index) => {
+                            const safeParent = parent.replace(/[^a-zA-Z0-9_]/g, '_');
+                            const safeChild = child.replace(/[^a-zA-Z0-9_]/g, '_');
+                            mermaidCode += `    ${safeParent}["${parent}"]\n`;
+                            mermaidCode += `    ${safeChild}["${child}"]\n`;
+                            mermaidCode += `    ${safeParent} --> ${safeChild}\n`;
+                            
+                            const colorIndex = index % 4;
+                            const colors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899'];
+                            mermaidCode += `    style ${safeParent} fill:#1e293b,stroke:${colors[colorIndex]},color:#fff\n`;
+                            mermaidCode += `    style ${safeChild} fill:#1e293b,stroke:${colors[colorIndex]},color:#fff\n`;
+                        });
+                    } else {
+                        mermaidCode = 'graph TD\n    No custom TF detected\n';
+                    }
+                    break;
+                    
+                case 'simplified':
+                    mermaidCode = 'graph TD\n';
+                    if (currentData.tf?.odom && currentData.tf.odom.length > 0) {
+                        mermaidCode += '    odom["odom"]\n';
+                        currentData.tf.odom.forEach(child => {
+                            if (child) mermaidCode += `    ${child.replace(/[^a-zA-Z0-9_]/g, '_')}["${child}"]\n`;
+                            mermaidCode += `    odom --> ${child.replace(/[^a-zA-Z0-9_]/g, '_')}\n`;
+                        });
+                    }
+                    if (currentData.tf?.base_link && currentData.tf.base_link.length > 0) {
+                        mermaidCode += '    base_link["base_link"]\n';
+                        currentData.tf.base_link.forEach(child => {
+                            if (child) mermaidCode += `    ${child.replace(/[^a-zA-Z0-9_]/g, '_')}["${child}"]\n`;
+                            mermaidCode += `    base_link --> ${child.replace(/[^a-zA-Z0-9_]/g, '_')}\n`;
+                        });
+                    }
+                    break;
+            }
+            
+            renderMermaid(container, mermaidCode);
+        }
+
+        function renderMermaid(container, mermaidCode) {
+            if (!container) return;
+            
+            try {
+                if (!mermaidCode || mermaidCode.trim() === '') {
+                    container.innerHTML = '<div class="mermaid-error">No data to display</div>';
+                    return;
+                }
+                
+                container.innerHTML = `<div class="mermaid">${mermaidCode}</div>`;
+                
+                setTimeout(() => {
+                    try {
+                        mermaid.init(undefined, container.querySelectorAll('.mermaid'));
+                    } catch (mermaidError) {
+                        console.error('Mermaid error:', mermaidError);
+                        container.innerHTML = `<div class="mermaid-error">Rendering error: ${mermaidError.message}</div>`;
+                    }
+                }, 100);
+                
+            } catch (error) {
+                console.error('Graph generation error:', error);
+                container.innerHTML = `<div class="mermaid-error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // ========== UTILITY FUNCTIONS ==========
+
+        function highlightPackageFiles(packageName) {
+            if (!currentData || !currentData.packages_detected) return;
+            
+            const packageInfo = Object.values(currentData.packages_detected).find(
+                pkg => pkg.name === packageName
+            );
+            
+            if (!packageInfo || !packageInfo.files) return;
+            
+            const fileTree = document.getElementById('fileTree');
+            if (fileTree) {
+                fileTree.querySelectorAll('.folder-content').forEach(content => {
+                    content.classList.remove('hidden');
+                });
+                
+                setTimeout(() => {
+                    packageInfo.files.forEach(file => {
+                        const fileItems = fileTree.querySelectorAll('div');
+                        fileItems.forEach(item => {
+                            if (item.textContent.includes(file)) {
+                                item.classList.add('node-highlight');
+                                setTimeout(() => {
+                                    item.classList.remove('node-highlight');
+                                }, 3000);
+                            }
+                        });
+                    });
+                }, 100);
+            }
+        }
+
+        function highlightFileInTree(fileName) {
+            if (!fileName) return;
+            const fileItems = document.querySelectorAll('#fileTree div');
+            fileItems.forEach(item => {
+                if (item.textContent.includes(fileName)) {
+                    item.classList.add('node-highlight');
+                    setTimeout(() => {
+                        item.classList.remove('node-highlight');
+                    }, 3000);
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+
+        function closePackageDetail() {
+            const packageDetailSection = document.getElementById('packageDetailSection');
+            const packagesDetectedSection = document.getElementById('packagesDetectedSection');
+            const validationSection = document.getElementById('validationSection');
+            const behavioralAnalysisSection = document.getElementById('behavioralAnalysisSection');
+            const tfVisualizationSection = document.getElementById('tfVisualizationSection');
+            
+            if (packageDetailSection) packageDetailSection.classList.add('hidden');
+            if (packagesDetectedSection) packagesDetectedSection.classList.remove('hidden');
+            if (validationSection) validationSection.classList.remove('hidden');
+            if (behavioralAnalysisSection) behavioralAnalysisSection.classList.remove('hidden');
+            if (tfVisualizationSection) tfVisualizationSection.classList.remove('hidden');
+            
+            currentPackageDetail = null;
+            currentPackageData = null;
+            
+            // Clear package detail data
+            window.packageDetailData = null;
+}
+
+// Ajoutez cette ligne à la fin de votre script
+console.log("closePackageDetail defined:", typeof closePackageDetail);
+        
+    </script>
+</body>
+</html>
