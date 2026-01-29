@@ -47,7 +47,8 @@ The platform ensures the uploaded ZIP is a valid ROS2 workspace.
 
 The engine performs static analysis on source files to identify ROS2 entities:
 
-**Python (AST Analysis)**: Instead of simple text search, it uses the Abstract Syntax Tree (AST) to: Detect classes inheriting from rclpy.Node, Identify calls to create_publisher(), create_subscription(), create_service(), ActionServer, and declare_parameter() and Extract topic names, service types, action names, and parameter declarations with precise argument resolution
+**Python (AST Analysis)**: Instead of simple text search, it uses the Abstract Syntax Tree (AST) to: Detect classes inheriting from rclpy.Node, Identify calls to create_publisher(), create_subscription(), create_service(), ActionServer, and declare_parameter() and Extract topic names, service types, action names, and parameter declarations with precise argument resolution.
+
 **C++ (Regex Pattern Matching)**: High-performance regular expressions extract node definitions and middleware interface declarations from `.cpp` and `.hpp` files.
 
 The code performs intelligent **launch file detection** and analysis across multiple formats. It identifies Python, XML, and YAML launch files using 6 detection criteria, extracts nodes and parameters with pattern matching, organizes them by package, and provides detailed statistics on launch file distribution and usage patterns.
