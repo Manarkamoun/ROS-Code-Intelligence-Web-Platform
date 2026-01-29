@@ -6,6 +6,7 @@ Getting Started
 # Prerequisites
 
 Python 3.10+
+
 A ROS2 Workspace (zipped) for analysis.
 
 # Installation
