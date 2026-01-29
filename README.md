@@ -86,9 +86,13 @@ Each detected node is mapped to one of seven functional layers based on its nami
 The platform calculates metrics to evaluate system performance:
 
 **Frequency Grading**:
+
 **ULTRA_HIGH (≥100 Hz)**: Hardware-critical tasks.
+
 **HIGH (≥50 Hz)**: Strict real-time loops.
+
 **MEDIUM (≥20 Hz)**: Standard processing.
+
 **Cognitive Load**: A score derived from the ratio of input/output interfaces, identifying "God Nodes" that might become bottlenecks.
 
 # For Communication Chains:
