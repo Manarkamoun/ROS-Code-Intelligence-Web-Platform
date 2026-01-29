@@ -11,7 +11,7 @@ A ROS2 Workspace (zipped) for analysis.
 
 # Installation
 
-1. Clone the repository(or navigate to the folder).
+1. Clone the repository.
 2. Install dependencies:
 
     -pip install fastapi uvicorn python-multipart networkx matplotlib PyYAML
@@ -31,9 +31,11 @@ Launch the frontend by opening the index.html file.
 The platform ensures the uploaded ZIP is a valid ROS2 workspace.
 
  **Session Isolation**: Every upload generates a unique `UUID` to prevent data cross-contamination.
+ 
  **Workspace Validation**: The `validator.py` module checks for mandatory ROS2 structures (e.g., `package.xml`, `src` folders).
 
-  The **validator.py** module is a sophisticated static analysis tool for ROS2 workspaces that performs comprehensive syntax, semantic, and architectural validation across multiple file     types and languages.
+  The **validator.py** module is a sophisticated static analysis tool for ROS2 workspaces that performs comprehensive syntax, semantic, and architectural validation across multiple file types and languages :
+  
       -File Classification → Determine file type and purpose
   
       -Pattern Matching → Regex + AST parsing for each language
