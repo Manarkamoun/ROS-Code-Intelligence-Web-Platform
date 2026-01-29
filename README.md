@@ -13,13 +13,13 @@ A ROS2 Workspace (zipped) for analysis.
 1. Clone the repository(or navigate to the folder).
 2. Install dependencies:
 
-pip install fastapi uvicorn python-multipart networkx matplotlib PyYAML
+    -pip install fastapi uvicorn python-multipart networkx matplotlib PyYAML
 
 # Running the Project
 
 Launch the FastAPI server using the following command:
 
-python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+   -python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 Launch the frontend by opening the index.html file.
 
@@ -108,8 +108,13 @@ The platform calculates metrics to evaluate system performance:
 # Technology Stack
 
 **Backend**: FastAPI (Python)
+
 **Graph Theory**: NetworkX
+
 **Data Visualization**: Matplotlib (Agg backend)
+
 **Frontend**: HTML5 / JavaScript (Tailwind CSS)
+
 **Diagrams**:	Mermaid.js
+The first interface you will encounter is shown below: ![Main Interface](Platform/1.png)
 
