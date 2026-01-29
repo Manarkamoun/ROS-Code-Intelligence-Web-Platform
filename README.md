@@ -116,5 +116,38 @@ The platform calculates metrics to evaluate system performance:
 **Frontend**: HTML5 / JavaScript (Tailwind CSS)
 
 **Diagrams**:	Mermaid.js
-The first interface you will encounter is shown below: ![Main Interface](Platform/1.png)
+
+**The first interface you will encounter is shown below**: ![Main Interface](Platform/1.png)
+
+**When you click on "Analyze Workspace," a file selection window will open, and you must select a zipped (.zip) ROS2 workspace folder.**: ![2 Interface](Platform/2.png)
+
+**The project interface will be open and you'll see System Statistics showing the numbers of nodes, topics, services, and actions. Then, you'll find the Project Structure and ROS2 Packages Detected section, which presents crucial architectural insights we'll explore next.**: ![2 Interface](Platform/3.png)
+
+**You can expand the tree view to explore your project packages and files.**: ![Main Interface](Platform/4.png)
+
+**Now let's return to the ROS2 Packages section, which contains nodes, launch files, graph visualizations, and communication analysis.(aking the sensor fusion package as an example)**: ![Main Interface](Platform/6.png)
+
+**This view displays the nodes detected within each package, along with their associated interfaces:**: ![Main Interface](Platform/7.png)
+
+**This view displays the packages communication graph.**: ![Main Interface](Platform/8.png)
+
+**You can expand the tree view to explore your project packages and files.**: ![Main Interface](Platform/9.png)
+
+**This view displays topics, services, and actions.**: ![Main Interface](Platform/10.png)
+
+**This view displays launch files in the wheelchair package.**: ![Main Interface](Platform/11.png)
+
+**Now let's proceed to the Syntax Validation and Best Practices display section.**: ![Main Interface](Platform/12.png)
+
+**The following section is Professional Behavioral Analysis, featuring three key subsections: Performance Analysis, Decision Making , and Architecture Layers Classification.**: ![Main Interface](Platform/13.png)
+
+**The next section displays the longest communication chain**: ![Main Interface](Platform/14.png)
+
+**The next section displays the Architecture System Overview section.**: ![Main Interface](Platform/15.png)
+
+ ![Main Interface](Platform/16.png)
+
+**The following section presents the TF (Transform) tree visualization.**: ![Main Interface](Platform/17.png)
+
+![Main Interface](Platform/18.png)
 
